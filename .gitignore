@@ -1,0 +1,38 @@
+# llama.cpp subproject (has its own repo)
+llama.cpp/
+
+# Model files (large binary files)
+models/
+*.gguf
+*.bin
+*.ggml
+
+# macOS
+.DS_Store
+._*
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python virtual environments
+.venv/
+__pycache__/
+*.pyc
+
+# Build artifacts
+build/
+*.o
+*.a
+*.dylib
+*.so
+
+# Environment and secrets
+.env
+.env.*
+
+# Node (if applicable)
+node_modules/
