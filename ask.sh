@@ -1,10 +1,10 @@
 #!/bin/bash
-# Send a single prompt to Gemma 4 31B and get a response
+# Send a single prompt to Qwen 3.6 35B-A3B and get a response
 # Usage: ./ask.sh "Your question here" [--model PATH] [--temp FLOAT] [--tokens N]
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LLAMA_CLI="${PROJECT_DIR}/llama.cpp/build/bin/llama-cli"
-MODEL="${PROJECT_DIR}/models/gemma-4-31B/gemma-4-31B-it-Q8_0.gguf"
+MODEL="${PROJECT_DIR}/models/qwen-3.6-35B/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf"
 TEMP="0.7"
 TOKENS="512"
 PROMPT=""
@@ -18,7 +18,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: ./ask.sh \"Your question\" [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --model PATH    Path to GGUF model (default: gemma-4-31B-it-Q8_0.gguf)"
+            echo "  --model PATH    Path to GGUF model (default: Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf)"
             echo "  --temp FLOAT    Sampling temperature (default: 0.7)"
             echo "  --tokens N      Max tokens to generate (default: 512)"
             echo "  -h, --help      Show this help"

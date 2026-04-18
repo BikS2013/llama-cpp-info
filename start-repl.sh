@@ -1,10 +1,10 @@
 #!/bin/bash
-# Start Gemma 4 31B in interactive conversation (REPL) mode
+# Start Qwen 3.6 35B-A3B in interactive conversation (REPL) mode
 # Usage: ./start-repl.sh [--model PATH] [--temp FLOAT] [--ctx SIZE]
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LLAMA_CLI="${PROJECT_DIR}/llama.cpp/build/bin/llama-cli"
-MODEL="${PROJECT_DIR}/models/gemma-4-31B/gemma-4-31B-it-Q8_0.gguf"
+MODEL="${PROJECT_DIR}/models/qwen-3.6-35B/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf"
 TEMP="0.7"
 CTX="4096"
 
@@ -17,7 +17,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: ./start-repl.sh [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --model PATH   Path to GGUF model (default: gemma-4-31B-it-Q8_0.gguf)"
+            echo "  --model PATH   Path to GGUF model (default: Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf)"
             echo "  --temp FLOAT   Sampling temperature (default: 0.7)"
             echo "  --ctx SIZE     Context size in tokens (default: 4096)"
             echo "  -h, --help     Show this help"

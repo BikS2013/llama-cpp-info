@@ -1,10 +1,10 @@
 #!/bin/bash
-# Start Gemma 4 31B as an OpenAI-compatible API server
+# Start Qwen 3.6 35B-A3B as an OpenAI-compatible API server
 # Usage: ./start-api.sh [--model PATH] [--port N] [--host ADDR] [--ctx SIZE]
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LLAMA_SERVER="${PROJECT_DIR}/llama.cpp/build/bin/llama-server"
-MODEL="${PROJECT_DIR}/models/gemma-4-31B/gemma-4-31B-it-Q8_0.gguf"
+MODEL="${PROJECT_DIR}/models/qwen-3.6-35B/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf"
 PORT="8080"
 HOST="127.0.0.1"
 CTX="4096"
@@ -19,7 +19,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: ./start-api.sh [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --model PATH   Path to GGUF model (default: gemma-4-31B-it-Q8_0.gguf)"
+            echo "  --model PATH   Path to GGUF model (default: Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf)"
             echo "  --port N       Server port (default: 8080)"
             echo "  --host ADDR    Bind address (default: 127.0.0.1)"
             echo "  --ctx SIZE     Context size in tokens (default: 4096)"
