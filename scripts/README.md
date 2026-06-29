@@ -6,7 +6,7 @@ This folder contains scripts to set up and manage the llama.cpp environment.
 
 ### 1. Clone and Build llama.cpp
 ```bash
-./scripts/setup-llama-cpp.sh
+./scripts/llama-setup.sh setup
 ```
 
 This will:
@@ -19,13 +19,16 @@ Download specific models or all default models:
 
 ```bash
 # Download all default models
-./scripts/download-models.sh
+./scripts/llama-setup.sh download all
 
 # Download a specific model
-./scripts/download-models.sh Ornith-1.0-35B
+./scripts/llama-setup.sh download MiniMax-M2.7
 
-# Download a single model script
-./scripts/download-Ornith-1.0-35B.sh
+# Download all models (including non-default)
+./scripts/llama-setup.sh download all-non-default
+
+# List available models
+./scripts/llama-setup.sh list
 ```
 
 ### 3. Run a Model
@@ -45,8 +48,50 @@ Download specific models or all default models:
 
 ## Available Scripts
 
-### setup-llama-cpp.sh
-Clone and build llama.cpp with Metal GPU support.
+### llama-setup.sh (Unified)
+The main consolidated script that provides a single interface for all setup and model management tasks.
+
+**Usage:**
+```bash
+./scripts/llama-setup.sh <command> [options]
+
+Commands:
+  setup                              Clone and build llama.cpp with Metal GPU support
+  download [all|model-name]          Download models from HuggingFace
+  list                               List available models
+  help                               Show this help message
+```
+
+**Examples:**
+```bash
+./scripts/llama-setup.sh setup                    # Build llama.cpp
+./scripts/llama-setup.sh download all             # Download all default models
+./scripts/llama-setup.sh download MiniMax-M2.7    # Download specific model
+./scripts/llama-setup.sh list                     # List all models
+```
+
+**Requirements:**
+- Xcode Command Line Tools: `xcode-select --install`
+- CMake: `brew install cmake`
+- Git: `brew install git`
+- HF CLI: `uv tool install --with hf_transfer huggingface_hub`
+
+### Individual Download Scripts (Deprecated)
+Individual scripts are still available but deprecated in favor of the unified `llama-setup.sh`:
+
+| Script | Model | Size | Status |
+|--------|-------|------|--------|
+| `download-gemma-4-E2B.sh` | Gemma 4 E2B | 4.7 GB | Deprecated |
+| `download-gemma-4-E4B.sh` | Gemma 4 E4B | 7.6 GB | Deprecated |
+| `download-gemma-4-26B.sh` | Gemma 4 26B | 25 GB | Deprecated |
+| `download-gemma-4-31B.sh` | Gemma 4 31B | 30 GB | Deprecated |
+| `download-MiniMax-M2.7.sh` | MiniMax-M2.7 | 101 GB | Deprecated |
+| `download-Ornith-1.0-35B.sh` | Ornith-1.0-35B | 34 GB | Deprecated |
+| `download-qwen-3.6-35B.sh` | Qwen3.6-35B | 36 GB | Deprecated |
+| `download-Qwen3-Coder-Next.sh` | Qwen3-Coder-Next | 68 GB | Deprecated |
+
+### setup-llama-cpp.sh (Legacy)
+Legacy script for building llama.cpp. Use `llama-setup.sh setup` instead.
 
 **Usage:**
 ```bash
@@ -54,129 +99,116 @@ Clone and build llama.cpp with Metal GPU support.
 ```
 
 **Requirements:**
-- Xcode Command Line Tools
-- CMake
-- Git
+- Xcode Command Line Tools: `xcode-select --install`
+- CMake: `brew install cmake`
+- Git: `brew install git`
 - At least 10 GB free disk space
 
-### download-models.sh
-Download all models from HuggingFace with a single command.
+### download-models.sh (Legacy)
+Legacy script for downloading models. Use `llama-setup.sh download` instead.
 
 **Usage:**
 ```bash
-# Download all default models (gemma-4-E2B, gemma-4-E4B, gemma-4-26B, gemma-4-31B)
-./scripts/download-models.sh
-
-# Download a specific model
-./scripts/download-models.sh MiniMax-M2.7
-
-# List available models
-./scripts/download-models.sh --help
+./scripts/download-models.sh                    # Download all default models
+./scripts/download-models.sh MiniMax-M2.7       # Download specific model
+./scripts/download-models.sh --help             # Show help
 ```
 
-**Models available:**
-- **gemma-4-E2B** (2.3B, Q8_0, 4.7 GB)
-- **gemma-4-E4B** (4.5B, Q8_0, 7.6 GB)
-- **gemma-4-26B** (A4B, Q8_0, 25 GB)
-- **gemma-4-31B** (dense, Q8_0, 30 GB)
-- **MiniMax-M2.7** (229B MoE, ~101 GB, 4 shards)
-- **Ornith-1.0-35B** (35B MoE, Q8_0, 34 GB)
-- **qwen-3.6-35B** (A3B, Q8_K_XL, 36 GB)
-- **Qwen3-Coder-Next** (80B MoE, ~68 GB, 3 shards)
+## Available Models
 
-### download-gemma-4-E2B.sh
-Download Gemma 4 E2B model.
+### Default Models (Downloaded with `download all`)
+- **gemma-4-E2B** (2.3B, Q8_0, 4.7 GB) - Fast, good for testing
+- **gemma-4-E4B** (4.5B, Q8_0, 7.6 GB) - Slightly larger
+- **gemma-4-26B** (A4B, Q8_0, 25 GB) - A4B quantized
+- **gemma-4-31B** (dense, Q8_0, 30 GB) - Dense model
 
-**Usage:**
-```bash
-./scripts/download-gemma-4-E2B.sh
-```
+### Non-Default Models
+- **MiniMax-M2.7** (229B MoE, ~101 GB, 4 shards) - Large MoE model
+- **Ornith-1.0-35B** (35B MoE, Q8_0, 34 GB) - Agentic coding model
+- **qwen-3.6-35B** (A3B, Q8_K_XL, 36 GB) - Qwen3-Next hybrid
+- **Qwen3-Coder-Next** (80B MoE, ~68 GB, 3 shards) - Agentic coding model
 
-**Performance:**
-- ~67 t/s prompt, ~120 t/s generation on Apple M4 Max
+## Model Details
 
-### download-gemma-4-E4B.sh
-Download Gemma 4 E4B model.
+### Gemma 4 Series
+All Gemma 4 models are dense or quantized dense architectures optimized for efficiency.
 
-**Usage:**
-```bash
-./scripts/download-gemma-4-E4B.sh
-```
+| Model | Size | Performance | Notes |
+|-------|------|-------------|-------|
+| E2B | 4.7 GB | ~67 t/s prompt, ~120 t/s generation | Fastest, great for testing |
+| E4B | 7.6 GB | Moderate | Good balance |
+| 26B | 25 GB | Moderate | A4B quantized |
+| 31B | 30 GB | Moderate | Dense model |
 
-### download-gemma-4-26B.sh
-Download Gemma 4 26B model.
+### MiniMax-M2.7
+- **229B params MoE**, ~10B active
+- **~101 GB total**, 4 shards
+- 200K context window
+- **Performance**: ~34 t/s prompt, ~5 t/s generation (cold) on Apple M-series with 128 GB unified memory
+- **Memory requirement**: For Apple silicon with 128 GB, set GPU memory ceiling:
+  ```bash
+  sudo sysctl -w iogpu.wired_limit_mb=122880
+  ```
+- **Usage**: Load the **first shard only** — llama.cpp auto-loads the rest
+- **Recommended sampling**: temp 1.0, top-p 0.95, top-k 40
 
-**Usage:**
-```bash
-./scripts/download-gemma-4-26B.sh
-```
+### Ornith-1.0-35B
+- **35B MoE**, ~3B active
+- **Q8_0**, 34 GB
+- Agentic-coding model from DeepReinforce
+- **Features**:
+  - Reasoning (<think> blocks)
+  - OpenAI-style tool calling (qwen3 XML format)
+  - 256K context window
+  - License: MIT
+- **Recommended sampling**: temp 0.6, top-p 0.95, top-k 20
+- **Performance**: ~99 t/s prompt, ~93 t/s generation at Q8_0 on Apple M5 Max (128 GB unified memory)
+- **Usage**: Use the dedicated wrapper:
+  ```bash
+  ./run-ornith.sh chat                      # Interactive REPL
+  ./run-ornith.sh serve --ctx 65536         # API server (OpenAI-compatible)
+  ./run-ornith.sh ask "Explain this..."     # Single prompt
+  ```
 
-### download-gemma-4-31B.sh
-Download Gemma 4 31B model.
+### Qwen3-Coder-Next
+- **80B MoE**, ~3B active
+- **UD-Q6_K_XL**, ~68 GB, 3 shards
+- Agentic-coding model from the Qwen team (Alibaba)
+- **Features**:
+  - **NON-reasoning** (no <think> blocks)
+  - OpenAI-style tool calling (qwen3_coder format)
+  - 256K context window
+  - License: Apache-2.0
+- **Recommended sampling**: temp 1.0, top-p 0.95, top-k 40, min-p 0.01
+- **Usage**: Use the dedicated wrapper:
+  ```bash
+  ./run-qwen-coder.sh chat                      # Interactive REPL
+  ./run-qwen-coder.sh serve --ctx 131072        # API server (OpenAI-compatible)
+  ./run-qwen-coder.sh ask "Refactor this..."    # Single prompt
+  ```
 
-**Usage:**
-```bash
-./scripts/download-gemma-4-31B.sh
-```
+## Storage Requirements
 
-### download-MiniMax-M2.7.sh
-Download MiniMax-M2.7 model (sharded).
+| Model | Size | Notes |
+|-------|------|-------|
+| gemma-4-E2B | 4.7 GB | Default model, fast |
+| gemma-4-E4B | 7.6 GB | Default model |
+| gemma-4-26B | 25 GB | Default model |
+| gemma-4-31B | 30 GB | Default model |
+| MiniMax-M2.7 | 101 GB | 4 shards |
+| Ornith-1.0-35B | 34 GB | Agentic coding |
+| qwen-3.6-35B | 36 GB | Qwen3-Next hybrid |
+| Qwen3-Coder-Next | 68 GB | 3 shards |
 
-**Usage:**
-```bash
-./scripts/download-MiniMax-M2.7.sh
-```
-
-**Note:** This is a sharded model (~101 GB total, 4 shards). Only the first shard needs to be loaded manually; llama.cpp auto-loads the rest.
-
-**Memory tip for Apple Silicon:**
-```bash
-# Set GPU memory ceiling (required for ~108 GB working set)
-sudo sysctl -w iogpu.wired_limit_mb=122880
-```
-
-### download-Ornith-1.0-35B.sh
-Download Ornith-1.0-35B model (agentic coding).
-
-**Usage:**
-```bash
-./scripts/download-Ornith-1.0-35B.sh
-```
-
-**Features:**
-- Reasoning (<think>)
-- OpenAI-style tool calling (qwen3 XML)
-- 256K context window
-- Recommended sampling: temp 0.6, top-p 0.95, top-k 20
-
-### download-qwen-3.6-35B.sh
-Download Qwen3.6-35B model.
-
-**Usage:**
-```bash
-./scripts/download-qwen-3.6-35B.sh
-```
-
-### download-Qwen3-Coder-Next.sh
-Download Qwen3-Coder-Next model (sharded, agentic coding).
-
-**Usage:**
-```bash
-./scripts/download-Qwen3-Coder-Next.sh
-```
-
-**Features:**
-- NON-reasoning (no <think> blocks)
-- OpenAI-style tool calling (qwen3_coder)
-- 256K context window
-- Recommended sampling: temp 1.0, top-p 0.95, top-k 40, min-p 0.01
+**Total for all default models: ~67.3 GB**
+**Total for all models: ~306 GB**
 
 ## Requirements
 
 ### For All Scripts
 - **HF CLI with hf_transfer**: `uv tool install --with hf_transfer huggingface_hub`
 
-### For setup-llama-cpp.sh
+### For Setup Scripts
 - Xcode Command Line Tools: `xcode-select --install`
 - CMake: `brew install cmake`
 - Git: `brew install git`
@@ -187,20 +219,17 @@ Download Qwen3-Coder-Next model (sharded, agentic coding).
 - Sufficient unified memory (at least 16 GB recommended)
 - For large models (MiniMax-M2.7, Qwen3-Coder-Next), ensure adequate GPU memory ceiling
 
-## Storage Requirements
+## Migrating from Legacy Scripts
 
-| Model | Size | Notes |
-|-------|------|-------|
-| gemma-4-E2B | 4.7 GB | Default model, fast |
-| gemma-4-E4B | 7.6 GB | Slightly larger |
-| gemma-4-26B | 25 GB | A4B quantized |
-| gemma-4-31B | 30 GB | Dense model |
-| MiniMax-M2.7 | 101 GB | 4 shards |
-| Ornith-1.0-35B | 34 GB | Agentic coding |
-| qwen-3.6-35B | 36 GB | Qwen3-Next hybrid |
-| Qwen3-Coder-Next | 68 GB | 3 shards |
+### Old Command → New Command
 
-**Total for all models: ~306 GB**
+| Old | New |
+|-----|-----|
+| `./scripts/download-models.sh` | `./scripts/llama-setup.sh download all` |
+| `./scripts/download-models.sh MiniMax-M2.7` | `./scripts/llama-setup.sh download MiniMax-M2.7` |
+| `./scripts/download-models.sh --help` | `./scripts/llama-setup.sh help` |
+| `./scripts/download-gemma-4-E2B.sh` | `./scripts/llama-setup.sh download gemma-4-E2B` |
+| `./scripts/setup-llama-cpp.sh` | `./scripts/llama-setup.sh setup` |
 
 ## Troubleshooting
 
@@ -219,6 +248,12 @@ xcode-select --install
 For MiniMax-M2.7 (~108 GB working set), raise the GPU ceiling:
 ```bash
 sudo sysctl -w iogpu.wired_limit_mb=122880
+```
+
+### Model already exists
+If a model directory already exists, the download is skipped with a warning. Remove the directory first if you want to re-download:
+```bash
+rm -rf models/MiniMax-M2.7
 ```
 
 ## Additional Resources
