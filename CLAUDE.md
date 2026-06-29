@@ -90,6 +90,16 @@
 ./llama.cpp/build/bin/llama-cli -m ./models/gemma-4-E2B/gemma-4-E2B-it-Q8_0.gguf -ngl 99 --temp 0.7
 ```
 
+**Interactive chat (Ornith):**
+```bash
+./run-ornith.sh chat
+```
+
+**Interactive chat (Qwen3-Coder-Next):**
+```bash
+./run-qwen-coder.sh chat
+```
+
 **Interactive chat (MiniMax-M2.7):**
 ```bash
 ./llama.cpp/build/bin/llama-cli -m ./models/MiniMax-M2.7/UD-IQ4_XS/MiniMax-M2.7-UD-IQ4_XS-00001-of-00004.gguf -ngl 99 --temp 1.0 --top-p 0.95 --top-k 40
@@ -132,6 +142,12 @@ Equivalent raw command (what the wrapper runs):
 
 ### Rebuilding llama.cpp
 
+Using the setup script (recommended):
+```bash
+./scripts/setup-llama-cpp.sh
+```
+
+Or manually:
 ```bash
 cd llama.cpp
 git pull
@@ -139,11 +155,32 @@ cmake -B build -DGGML_METAL=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release -j$(sysctl -n hw.ncpu)
 ```
 
+## Scripts
+
+The project includes several helper scripts in the `scripts/` folder:
+
+- **setup-llama-cpp.sh** — Clone and build llama.cpp with Metal GPU support
+- **download-models.sh** — Download all models from HuggingFace
+- **download-*.sh** — Individual model download scripts for each model
+
+See `scripts/README.md` for detailed documentation.
+
 ### Downloading Additional Models
 
 Install the HF CLI via uv (once):
 ```bash
 uv tool install --with hf_transfer huggingface_hub
+```
+
+Download all models with the helper script:
+```bash
+./scripts/download-models.sh
+```
+
+Or download individual models:
+```bash
+./scripts/download-Ornith-1.0-35B.sh
+./scripts/download-Qwen3-Coder-Next.sh
 ```
 
 Download examples:
