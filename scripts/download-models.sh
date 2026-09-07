@@ -13,8 +13,10 @@
 #   gemma-4-26B      - Gemma 4 26B (A4B, Q8_0, 25 GB)        [DEFAULT]
 #   gemma-4-31B      - Gemma 4 31B (dense, Q8_0, 30 GB)      [DEFAULT]
 #   MiniMax-M2.7     - MiniMax-M2.7 (229B MoE, ~101 GB, 4 shards)
-#   Ornith-1.0-35B   - Ornith-1.0-35B (35B MoE, Q8_0, 34 GB)
+#   Ornith-1.0-35B   - Ornith-1.0-35B (35B MoE, Q8_0, 34 GB)  [superseded by 1.5]
+#   Ornith-1.5-35B   - Ornith-1.5-35B-A3B (35B MoE, Q8_0, 35 GB + mmproj)
 #   qwen-3.6-35B     - Qwen3.6-35B (A3B, Q8_K_XL, 36 GB)
+#   qwen-3.8-27B     - Qwen3.8-27B (dense, Q8_K_XL, 29 GB + mmproj)
 #   Qwen3-Coder-Next - Qwen3-Coder-Next (80B MoE, ~68 GB, 3 shards)
 #
 # Requirements:
@@ -63,8 +65,10 @@ show_help() {
     printf "  %-20s %s\n" "gemma-4-26B" "Gemma 4 26B (A4B, Q8_0, 25 GB)"
     printf "  %-20s %s\n" "gemma-4-31B" "Gemma 4 31B (dense, Q8_0, 30 GB)"
     printf "  %-20s %s\n" "MiniMax-M2.7" "MiniMax-M2.7 (229B MoE, ~101 GB, 4 shards)"
-    printf "  %-20s %s\n" "Ornith-1.0-35B" "Ornith-1.0-35B (35B MoE, Q8_0, 34 GB)"
+    printf "  %-20s %s\n" "Ornith-1.0-35B" "Ornith-1.0-35B (35B MoE, Q8_0, 34 GB) [superseded by 1.5]"
+    printf "  %-20s %s\n" "Ornith-1.5-35B" "Ornith-1.5-35B-A3B (35B MoE, Q8_0, 35 GB + mmproj)"
     printf "  %-20s %s\n" "qwen-3.6-35B" "Qwen3.6-35B (A3B, Q8_K_XL, 36 GB)"
+    printf "  %-20s %s\n" "qwen-3.8-27B" "Qwen3.8-27B (dense, Q8_K_XL, 29 GB + mmproj)"
     printf "  %-20s %s\n" "Qwen3-Coder-Next" "Qwen3-Coder-Next (80B MoE, ~68 GB, 3 shards)"
     echo ""
     echo "Options:"
@@ -73,7 +77,7 @@ show_help() {
     echo "Examples:"
     echo "  $0                    # Download all default models"
     echo "  $0 MiniMax-M2.7       # Download only MiniMax-M2.7"
-    echo "  $0 ornith             # Download only Ornith-1.0-35B"
+    echo "  $0 Ornith-1.5         # Download only Ornith-1.5-35B"
     echo "  $0 gemma              # Download all Gemma models"
 }
 
@@ -107,9 +111,14 @@ download_model() {
 
     mkdir -p "$target_dir"
 
+    # "include" may be a comma-separated list of patterns (e.g. model + mmproj)
+    local include_args=()
+    IFS=',' read -ra include_list <<< "$include"
+    for pat in "${include_list[@]}"; do include_args+=(--include "$pat"); done
+
     # Use HF_TRANSFER for faster downloads
     HF_HUB_ENABLE_HF_TRANSFER=1 hf download "$repo" \
-        --include "$include" \
+        "${include_args[@]}" \
         --local-dir "$target_dir"
 
     print_success "Downloaded ${model_name}"
@@ -134,10 +143,16 @@ get_model_spec() {
             echo "MiniMax-M2.7|unsloth/MiniMax-M2.7-GGUF|UD-IQ4_XS/*|MiniMax-M2.7 (229B MoE, ~101 GB)|101 GB"
             ;;
         Ornith-1.0-35B)
-            echo "Ornith-1.0-35B|deepreinforce-ai/Ornith-1.0-35B-GGUF|ornith-1.0-35b-Q8_0.gguf|Ornith-1.0-35B (35B MoE, Q8_0)|34 GB"
+            echo "Ornith-1.0-35B|ornith-ai/Ornith-1.0-35B-GGUF|ornith-1.0-35b-Q8_0.gguf|Ornith-1.0-35B (35B MoE, Q8_0)|34 GB"
+            ;;
+        Ornith-1.5-35B)
+            echo "Ornith-1.5-35B|ornith-ai/Ornith-1.5-35B-A3B-GGUF|Ornith-1.5-35B-Q8_0.gguf,mmproj-Ornith-1.5-35B-BF16.gguf|Ornith-1.5-35B-A3B (35B MoE, Q8_0)|36 GB"
             ;;
         qwen-3.6-35B)
             echo "qwen-3.6-35B|unsloth/Qwen3.6-35B-A3B-GGUF|Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf|Qwen3.6-35B (A3B, Q8_K_XL)|36 GB"
+            ;;
+        qwen-3.8-27B)
+            echo "qwen-3.8-27B|unsloth/Qwen3.8-27B-GGUF|Qwen3.8-27B-UD-Q8_K_XL.gguf,mmproj-BF16.gguf|Qwen3.8-27B (dense, Q8_K_XL)|30 GB"
             ;;
         Qwen3-Coder-Next)
             echo "Qwen3-Coder-Next|unsloth/Qwen3-Coder-Next-GGUF|UD-Q6_K_XL/*|Qwen3-Coder-Next (80B MoE, ~68 GB)|68 GB"
@@ -156,8 +171,10 @@ list_models() {
     echo "  gemma-4-26B          Gemma 4 26B (A4B, Q8_0, 25 GB)"
     echo "  gemma-4-31B          Gemma 4 31B (dense, Q8_0, 30 GB)"
     echo "  MiniMax-M2.7         MiniMax-M2.7 (229B MoE, ~101 GB, 4 shards)"
-    echo "  Ornith-1.0-35B       Ornith-1.0-35B (35B MoE, Q8_0, 34 GB)"
+    echo "  Ornith-1.0-35B       Ornith-1.0-35B (35B MoE, Q8_0, 34 GB) [superseded by 1.5]"
+    echo "  Ornith-1.5-35B       Ornith-1.5-35B-A3B (35B MoE, Q8_0, 35 GB + mmproj)"
     echo "  qwen-3.6-35B         Qwen3.6-35B (A3B, Q8_K_XL, 36 GB)"
+    echo "  qwen-3.8-27B         Qwen3.8-27B (dense, Q8_K_XL, 29 GB + mmproj)"
     echo "  Qwen3-Coder-Next     Qwen3-Coder-Next (80B MoE, ~68 GB, 3 shards)"
 }
 
@@ -171,7 +188,7 @@ else
     MODEL_ARG="$1"
     # Check if it matches a model name (exact or prefix)
     MATCHED=""
-    for key in "gemma-4-E2B" "gemma-4-E4B" "gemma-4-26B" "gemma-4-31B" "MiniMax-M2.7" "Ornith-1.0-35B" "qwen-3.6-35B" "Qwen3-Coder-Next"; do
+    for key in "gemma-4-E2B" "gemma-4-E4B" "gemma-4-26B" "gemma-4-31B" "MiniMax-M2.7" "Ornith-1.0-35B" "Ornith-1.5-35B" "qwen-3.6-35B" "qwen-3.8-27B" "Qwen3-Coder-Next"; do
         if [[ "$key" == "$MODEL_ARG" || "$key" == *"$MODEL_ARG"* ]]; then
             if [[ -n "$MATCHED" ]]; then
                 echo -e "${RED}ERROR: '$MODEL_ARG' matches multiple models: $MATCHED and $key${NC}"

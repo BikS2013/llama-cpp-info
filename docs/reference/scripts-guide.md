@@ -13,8 +13,10 @@ This document provides comprehensive documentation for all llama.cpp setup and m
 | `scripts/download-gemma-4-26B.sh` | Download Gemma 4 26B | ~1.6 KB |
 | `scripts/download-gemma-4-31B.sh` | Download Gemma 4 31B | ~1.6 KB |
 | `scripts/download-MiniMax-M2.7.sh` | Download MiniMax-M2.7 | ~2.3 KB |
-| `scripts/download-Ornith-1.0-35B.sh` | Download Ornith-1.0-35B | ~2.5 KB |
+| `scripts/download-Ornith-1.0-35B.sh` | Download Ornith-1.0-35B (previous gen) | ~2.5 KB |
+| `scripts/download-Ornith-1.5-35B.sh` | Download Ornith-1.5-35B-A3B + mmproj | ~3.0 KB |
 | `scripts/download-qwen-3.6-35B.sh` | Download Qwen3.6-35B | ~1.6 KB |
+| `scripts/download-qwen-3.8-27B.sh` | Download Qwen3.8-27B + mmproj | ~2.6 KB |
 | `scripts/download-Qwen3-Coder-Next.sh` | Download Qwen3-Coder-Next | ~2.7 KB |
 
 ## Detailed Script Reference
@@ -89,8 +91,10 @@ llama.cpp Setup Script
 | gemma-4-26B | Gemma 4 26B (A4B, Q8_0) | 25 GB | unsloth/gemma-4-26B-A4B-it-GGUF |
 | gemma-4-31B | Gemma 4 31B (dense, Q8_0) | 30 GB | unsloth/gemma-4-31B-it-GGUF |
 | MiniMax-M2.7 | MiniMax-M2.7 (229B MoE) | 101 GB | unsloth/MiniMax-M2.7-GGUF |
-| Ornith-1.0-35B | Ornith-1.0-35B (35B MoE) | 34 GB | deepreinforce-ai/Ornith-1.0-35B-GGUF |
+| Ornith-1.0-35B | Ornith-1.0-35B (35B MoE, previous gen) | 34 GB | ornith-ai/Ornith-1.0-35B-GGUF |
+| Ornith-1.5-35B | Ornith-1.5-35B-A3B (35B MoE) + mmproj | 36 GB | ornith-ai/Ornith-1.5-35B-A3B-GGUF |
 | qwen-3.6-35B | Qwen3.6-35B (A3B, Q8_K_XL) | 36 GB | unsloth/Qwen3.6-35B-A3B-GGUF |
+| qwen-3.8-27B | Qwen3.8-27B (dense, Q8_K_XL) + mmproj | 30 GB | unsloth/Qwen3.8-27B-GGUF |
 | Qwen3-Coder-Next | Qwen3-Coder-Next (80B MoE) | 68 GB | unsloth/Qwen3-Coder-Next-GGUF |
 
 **Features:**
@@ -163,9 +167,39 @@ sudo sysctl -w iogpu.wired_limit_mb=122880
 
 ---
 
+### download-Ornith-1.5-35B.sh
+
+**Purpose:** Download the Ornith-1.5-35B-A3B agentic coding model (current generation) plus its
+mmproj vision projector. HF repo `ornith-ai/Ornith-1.5-35B-A3B-GGUF`; GGUF arch `qwen35moe`, so
+no llama.cpp rebuild is needed. `run-ornith.sh` defaults to this model.
+
+**Features:**
+- Reasoning (<think> ... </think>), OpenAI-style tool calling (qwen3 XML)
+- 256K context window (YaRN-extensible to ~1M)
+- Recommended sampling: temp 0.6, top-p 0.95, top-k 20 (temp 1.0 reproduces the benchmarks)
+- License: MIT
+
+---
+
+### download-qwen-3.8-27B.sh
+
+**Purpose:** Download the Qwen3.8-27B dense vision-language model (UD-Q8_K_XL) plus its mmproj.
+HF repo `unsloth/Qwen3.8-27B-GGUF`; GGUF arch `qwen35`, runs on the existing build.
+
+**Features:**
+- Thinking mode on by default; `reasoning_effort` and `preserve_thinking` via the chat template
+- 256K native context (1M with YaRN)
+- Recommended sampling: thinking temp 1.0 / top-p 0.95 / top-k 20 / min-p 0;
+  instruct temp 0.7 / top-p 0.80 / top-k 20 / presence-penalty 1.5
+- License: Apache-2.0
+
+---
+
 ### download-Ornith-1.0-35B.sh
 
-**Purpose:** Download the Ornith-1.0-35B agentic coding model.
+**Purpose:** Download the Ornith-1.0-35B agentic coding model (previous generation; superseded by
+Ornith 1.5). The HF org moved from `deepreinforce-ai` to `ornith-ai`; the script now points at
+`ornith-ai/Ornith-1.0-35B-GGUF`.
 
 **Features:**
 - Highlights agentic coding features

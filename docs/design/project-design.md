@@ -154,6 +154,86 @@ Metal is enabled by default on Apple Silicon. The `-DGGML_METAL=ON` flag is expl
 | Model Load Time | ~7 seconds (first run, shader compilation) |
 | Model Load Time | <1 second (subsequent runs, cached shaders) |
 
+## Pi Workflow Extensions
+
+### Request Refiner Subagent Extension
+
+A focused Pi extension has been added outside the llama.cpp repository under the user's Pi workdocs area:
+
+| Item | Path |
+|------|------|
+| Extension source | `/Users/giorgosmarinos/ai-coding/pi-workdocs/extensions/request-refiner-subagent` |
+| Pi discovery symlink | `/Users/giorgosmarinos/.pi/agent/extensions/request-refiner-subagent` |
+| Entrypoint | `index.ts` |
+| Agent prompt | `request-refiner-agent.md` |
+
+The extension registers the `request_refiner_subagent` tool. The tool runs an isolated child `pi --mode json -p --no-session` process with a request-refiner system prompt derived from `test/subagent-specs/request-refiner.md`. The child subagent reads relevant project context and writes refined request specifications under `docs/reference/`.
+
+### Codebase Scanner Subagent Extension
+
+A focused Pi extension has been added outside the llama.cpp repository under the user's Pi workdocs area:
+
+| Item | Path |
+|------|------|
+| Extension source | `/Users/giorgosmarinos/ai-coding/pi-workdocs/extensions/codebase-scanner-subagent` |
+| Pi discovery symlink | `/Users/giorgosmarinos/.pi/agent/extensions/codebase-scanner-subagent` |
+| Entrypoint | `index.ts` |
+| Agent prompt | `codebase-scanner-agent.md` |
+
+The extension registers the `codebase_scanner_subagent` tool. The tool runs an isolated child `pi --mode json -p --no-session` process with a codebase-scanner system prompt derived from `test/subagent-specs/codebase-scanner.md`. The child subagent writes concise markdown codebase scans under `docs/reference/codebase-scan-<slug>.md`, including YAML metadata, module map, conventions, and request-specific integration points when a refined request file is supplied.
+
+### Investigator Subagent Extension
+
+A focused Pi extension has been added outside the llama.cpp repository under the user's Pi workdocs area:
+
+| Item | Path |
+|------|------|
+| Extension source | `/Users/giorgosmarinos/ai-coding/pi-workdocs/extensions/investigator-subagent` |
+| Pi discovery symlink | `/Users/giorgosmarinos/.pi/agent/extensions/investigator-subagent` |
+| Entrypoint | `index.ts` |
+| Agent prompt | `investigator-agent.md` |
+
+The extension registers the `investigator_subagent` tool. The tool runs an isolated child `pi --mode json -p --no-session` process with an investigator system prompt derived from `test/subagent-specs/investigator.md`. The child subagent writes structured investigation documents under `docs/reference/investigation-<slug>.md`, including option comparison, recommendation, implementation considerations, references, and a parseable `**Research needed**: Yes|No` flag for downstream technical-research routing.
+
+### Technical Researcher Subagent Extension
+
+A focused Pi extension has been added outside the llama.cpp repository under the user's Pi workdocs area:
+
+| Item | Path |
+|------|------|
+| Extension source | `/Users/giorgosmarinos/ai-coding/pi-workdocs/extensions/technical-researcher-subagent` |
+| Pi discovery symlink | `/Users/giorgosmarinos/.pi/agent/extensions/technical-researcher-subagent` |
+| Entrypoint | `index.ts` |
+| Agent prompt | `technical-researcher-agent.md` |
+
+The extension registers the `technical_researcher_subagent` tool. The tool runs an isolated child `pi --mode json -p --no-session` process with a technical-researcher system prompt derived from `test/subagent-specs/technical-researcher.md`. The child subagent writes implementation-level technical research documents under `docs/research/<topic-slug>.md`, including sources, assumptions, uncertainties, clarifying questions, and project integration notes where relevant.
+
+### Plan Builder Subagent Extension
+
+A focused Pi extension has been added outside the llama.cpp repository under the user's Pi workdocs area:
+
+| Item | Path |
+|------|------|
+| Extension source | `/Users/giorgosmarinos/ai-coding/pi-workdocs/extensions/plan-builder-subagent` |
+| Pi discovery symlink | `/Users/giorgosmarinos/.pi/agent/extensions/plan-builder-subagent` |
+| Entrypoint | `index.ts` |
+| Agent prompt | `plan-builder-agent.md` |
+
+The extension registers the `plan_builder_subagent` tool. The tool runs an isolated child `pi --mode json -p --no-session` process with a plan-builder system prompt derived from `test/subagent-specs/plan-builder.md`. The child subagent writes executable implementation plans under `docs/design/plan-NNN-<slug>.md`, including mandatory YAML frontmatter, dependency-ordered atomic steps, implementation units, risks, acceptance-criteria mapping, deviation rules, and verification commands.
+
+### Tool Doc Config Architect Subagent Extension
+
+A focused Pi extension has been added outside the llama.cpp repository under the user's Pi workdocs area:
+
+| Item | Path |
+|------|------|
+| Extension source | `/Users/giorgosmarinos/ai-coding/pi-workdocs/extensions/tool-doc-config-architect-subagent` |
+| Pi discovery symlink | `/Users/giorgosmarinos/.pi/agent/extensions/tool-doc-config-architect-subagent` |
+| Entrypoint | `index.ts` |
+| Agent prompt | `tool-doc-config-architect-agent.md` |
+
+The extension registers the `tool_doc_config_architect_subagent` tool. The tool runs an isolated child `pi --mode json -p --no-session` process with a tool-doc-config-architect system prompt derived from `test/subagent-specs/tool-doc-config-architect.md`. The child subagent supports scaffold and audit modes for TypeScript CLI tool documentation and configuration conventions, including `docs/tools/<tool-name>.md`, `~/.tool-agents/<tool-name>/`, canonical LLM provider environment variables, the four-tier resolution chain, no-fallback compliance, and read-only audit reporting.
+
 ## Known Issues & Notes
 
 1. **Gemma 4 requires llama.cpp build from April 11, 2026+** -- earlier builds have chat template (PR #21326) and tokenizer (PR #21343) bugs that cause garbage output

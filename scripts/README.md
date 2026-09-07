@@ -105,8 +105,10 @@ Individual scripts are still available but deprecated in favor of the unified `l
 | `download-gemma-4-26B.sh` | Gemma 4 26B | 25 GB | Deprecated |
 | `download-gemma-4-31B.sh` | Gemma 4 31B | 30 GB | Deprecated |
 | `download-MiniMax-M2.7.sh` | MiniMax-M2.7 | 101 GB | Deprecated |
-| `download-Ornith-1.0-35B.sh` | Ornith-1.0-35B | 34 GB | Deprecated |
+| `download-Ornith-1.0-35B.sh` | Ornith-1.0-35B | 34 GB | Deprecated (superseded by 1.5) |
+| `download-Ornith-1.5-35B.sh` | Ornith-1.5-35B-A3B (+ mmproj) | 36 GB | Deprecated |
 | `download-qwen-3.6-35B.sh` | Qwen3.6-35B | 36 GB | Deprecated |
+| `download-qwen-3.8-27B.sh` | Qwen3.8-27B (+ mmproj) | 30 GB | Deprecated |
 | `download-Qwen3-Coder-Next.sh` | Qwen3-Coder-Next | 68 GB | Deprecated |
 
 ### setup-llama-cpp.sh (Legacy)
@@ -143,8 +145,10 @@ Legacy script for downloading models. Use `llama-setup.sh download` instead.
 
 ### Non-Default Models
 - **MiniMax-M2.7** (229B MoE, ~101 GB, 4 shards) - Large MoE model
-- **Ornith-1.0-35B** (35B MoE, Q8_0, 34 GB) - Agentic coding model
+- **Ornith-1.0-35B** (35B MoE, Q8_0, 34 GB) - Agentic coding model, previous generation
+- **Ornith-1.5-35B** (35B MoE, Q8_0, 35 GB + 0.9 GB mmproj) - Agentic coding model, current generation
 - **qwen-3.6-35B** (A3B, Q8_K_XL, 36 GB) - Qwen3-Next hybrid
+- **qwen-3.8-27B** (dense, Q8_K_XL, 29 GB + 0.9 GB mmproj) - Qwen3.8 dense VLM, thinking on by default
 - **Qwen3-Coder-Next** (80B MoE, ~68 GB, 3 shards) - Agentic coding model
 
 ## Model Details
@@ -171,10 +175,12 @@ All Gemma 4 models are dense or quantized dense architectures optimized for effi
 - **Usage**: Load the **first shard only** — llama.cpp auto-loads the rest
 - **Recommended sampling**: temp 1.0, top-p 0.95, top-k 40
 
-### Ornith-1.0-35B
-- **35B MoE**, ~3B active
-- **Q8_0**, 34 GB
-- Agentic-coding model from DeepReinforce
+### Ornith-1.5-35B-A3B (current) / Ornith-1.0-35B (previous)
+- **35B MoE**, ~3B active — GGUF arch `qwen35moe` (Ornith 1.5 is built on Qwen3.6-35B-A3B)
+- **Q8_0**: 1.5 = 35 GB (+ 0.9 GB mmproj for vision), 1.0 = 34 GB
+- Agentic-coding model from Ornith AI (formerly published as `deepreinforce-ai`; both repos now
+  live under `ornith-ai/`). Ornith 1.5 (2026-08-24) outperforms Qwen3.6-35B on agentic coding
+  benchmarks per the model card. `run-ornith.sh` defaults to 1.5; pass `--version 1.0` for 1.0.
 - **Features**:
   - Reasoning (<think> blocks)
   - OpenAI-style tool calling (qwen3 XML format)
@@ -187,6 +193,22 @@ All Gemma 4 models are dense or quantized dense architectures optimized for effi
   ./run-ornith.sh chat                      # Interactive REPL
   ./run-ornith.sh serve --ctx 65536         # API server (OpenAI-compatible)
   ./run-ornith.sh ask "Explain this..."     # Single prompt
+  ./run-ornith.sh chat --version 1.0        # Previous generation
+  ./run-ornith.sh serve --vision            # Also load the mmproj (1.5 only)
+  ```
+
+### Qwen3.8-27B
+- **27B dense** vision-language model — GGUF arch `qwen35` (Qwen3.5 hybrid lineage), runs on b9835
+- **UD-Q8_K_XL**, 29 GB (+ 0.9 GB mmproj)
+- Successor of the Qwen3.6 series (2026-08-14); thinking mode **on by default**, switchable per
+  request; `reasoning_effort` (xhigh/medium/low) and `preserve_thinking` via the chat template
+- 256K native context (1M with YaRN), Apache-2.0
+- **Recommended sampling**: thinking — temp 1.0, top-p 0.95, top-k 20, min-p 0;
+  instruct — temp 0.7, top-p 0.80, top-k 20, min-p 0, presence-penalty 1.5
+- **Usage**:
+  ```bash
+  ./llama.cpp/build/bin/llama-cli -m models/qwen-3.8-27B/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+    -ngl 99 -fa on -c 32768 --jinja --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0
   ```
 
 ### Qwen3-Coder-Next
@@ -215,12 +237,14 @@ All Gemma 4 models are dense or quantized dense architectures optimized for effi
 | gemma-4-26B | 25 GB | Default model |
 | gemma-4-31B | 30 GB | Default model |
 | MiniMax-M2.7 | 101 GB | 4 shards |
-| Ornith-1.0-35B | 34 GB | Agentic coding |
-| qwen-3.6-35B | 36 GB | Qwen3-Next hybrid |
+| Ornith-1.0-35B | 34 GB | Agentic coding (previous gen; not on disk) |
+| Ornith-1.5-35B | 36 GB | Agentic coding, incl. mmproj |
+| qwen-3.6-35B | 36 GB | Qwen3-Next hybrid (superseded by qwen-3.8-27B; not on disk) |
+| qwen-3.8-27B | 30 GB | Dense VLM, incl. mmproj |
 | Qwen3-Coder-Next | 68 GB | 3 shards |
 
 **Total for all default models: ~67.3 GB**
-**Total for all models: ~306 GB**
+**Total for all models: ~372 GB**
 
 ## Requirements
 

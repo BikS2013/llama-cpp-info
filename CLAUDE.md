@@ -1,19 +1,43 @@
 <structure-and-conventions>
-## Structure & Conventions
+## Structure & Conventions — Documentation Map
 
-### Project Artifacts & Layout
+<!-- Maintained automatically. The master copy lives at
+     ~/.claude/structure-and-conventions.md (claude-workdocs repo) and the SessionStart
+     hook ~/.claude/scripts/sync-claude-md.sh keeps this copy of the block up to date —
+     edit the master, never this block. The block is committed with the repository on
+     purpose: it tells anyone (human or agent) working with this repo where the
+     project's documentation lives and how to read and maintain it. -->
 
-- Test scripts go in the `test_scripts` folder; create the folder if it doesn't exist.
-- Plans live under `docs/design/`, one file per plan, named `plan-NNN-<indicative-description>.md`.
-- The complete project design is maintained in `docs/design/project-design.md`; update it with each new design or design change.
-- All reference material used for the project is collected and kept under `docs/reference/`.
-- All functional requirements and feature descriptions are registered in `docs/design/project-functions.md`.
-- Every prompt created while working in a project goes in a dedicated `prompts` folder (create it if missing); each prompt file name has a sequential number prefix and is representative of the prompt's use and purpose.
-- Maintain `Issues - Pending Items.md` at the project root: register every issue, pending item, inconsistency, or discrepancy you detect, and whenever you fix a defect or issue, check the file for an item to remove. Pending items come first (most critical and important on top), completed items after.
-- Every time you are asked to solve an issue, you must resolve it AND thoroughly document both the issue and the solution.
+### Where the documentation lives
+
+- `docs/plans/` — every plan, one file per plan, named `plan-NNN-<indicative-description>.md`.
+- `docs/design/` — all other planning and design documents:
+  - `project-design.md` — the complete, always-current project design; update it with every new design or design change.
+  - `project-functions.md` — the registry of all functional requirements and feature descriptions.
+  - `configuration-guide.md` — the project's configuration guide, when one exists (structure below).
+- `docs/reference/` — all reference material collected for the project.
+- `docs/refined_requests/` — every refined request specification (create the folder if missing), one file per request named `refined-request-NNN-<slug>.md`. `NNN` is a zero-padded three-digit sequential number: the next number is the highest `NNN` already present in the folder plus one, starting at `001` — and when the category has an archive history branch, the archive's numbering counts too (see "Archiving historical documents" below). `<slug>` is the request slug reused by all downstream artifacts of the same request.
+- `docs/prompts/` — every prompt created while working on the project (create the folder if missing), one file per prompt named `NNN-<indicative-description>.md`. `NNN` is a zero-padded three-digit sequential number: the next number is the highest `NNN` already present in the folder plus one, starting at `001` — and when the category has an archive history branch, the archive's numbering counts too (see "Archiving historical documents" below). The description states the prompt's use and purpose.
+- `docs/tools/<tool-name>.md` — one dedicated documentation file per project tool.
+- `test_scripts/` — every test script goes here; create the folder if it doesn't exist.
+- `Issues - Pending Items.md` (project root) — the register of every issue, pending item, inconsistency, or discrepancy detected while working on the project. Pending items come first (most critical and important on top), completed items after. Whenever a defect or issue is fixed, check this file for an item to remove.
+
+### How to use the documentation
+
+- Every time an issue is solved, it must be resolved AND both the issue and the solution must be thoroughly documented.
+- This file's "Tools" section (when present) lists each project tool with a one-or-two-sentence description of what it is capable of and the relative path to its dedicated documentation file under `docs/tools/` — retrieve the full documentation from there whenever it is needed. Full tool documentation must never be inlined into this file.
+- Before writing any code script, consult the "Tools" section and the documentation under `docs/tools/` to check whether the planned code fits the scope of an existing tool. If so, implement it as an extension of that tool; otherwise build a generic, abstract version of the code as a new tool in the project's toolset, document it under `docs/tools/`, and reference it in the "Tools" section. The goal is to progressively grow the tools needed to test, evaluate, generate data, collect information, etc., and reuse them consistently.
+
+### Archiving historical documents (history branches)
+
+- A project MAY move accumulated historical, write-once process artifacts — deployment reports, codebase scans, refined requests, plans, session handoffs, and similar — off the default branch to keep its documentation lean. Living, authoritative documents (`project-design.md`, `project-functions.md`, the guides, tool docs, the issue register) are never archived.
+- Each archived category gets a dedicated **orphan, docs-only branch** named `<category>-history`, whose tree contains ONLY that category's files at their original repository paths — so retrieval paths never change: `git show <category>-history:<original-path>`, no branch switching required. A pointer note/README stays in the category's folder on the default branch stating the branch name, the retrieval command, and (for numbered categories) the next number. Archive branches are append-only: never rebase, rewrite, delete, or merge them.
+- **Numbering across the archive**: for every `NNN`-numbered folder, the next number is `max(highest NNN in the folder, highest NNN on the category's archive branch) + 1`. Before creating the FIRST document of a numbered category, check whether an archive branch exists for it (the folder's README/pointer note, or `git branch --list --all '*-history'`) and continue from the archive's highest number — never restart at `001`, never reuse an archived number. The archive branch is authoritative over the pointer note's recorded "next number" if they disagree.
+- **Migration** runs in a temporary linked worktree so the main checkout — and any uncommitted changes in it — is never disturbed: `git worktree add <tmp> <category>-history` (first-time archiving: `git worktree add --detach <tmp> <default-branch>`, then inside it `git switch --orphan <category>-history` and `git checkout <default-branch> -- <category-paths>`); bring the new artifacts over at their original paths and commit ONLY the category's files; then on the default branch `git rm` the migrated files, update the pointer note, and commit referencing the archive commit. Verify with `git ls-tree -r <category>-history --name-only` and a `git show` spot-check.
+- The project's concrete category → branch registry (which categories are archived, under which branch names) is project-specific and lives OUTSIDE this synced block — typically a "Document Archiving Strategy" section in the project's CLAUDE.md.
 
 <configuration-guide>
-- If the user asks for a configuration guide, create it at `docs/design/configuration-guide.md` and make sure it explains:
+- A configuration guide, when requested, is created at `docs/design/configuration-guide.md` and explains:
   - When multiple configuration options exist (config file, env variables, CLI params, etc.), what the options are and the priority of each one.
   - The purpose and use of each configuration variable.
   - How the user can obtain such a configuration variable.
@@ -22,41 +46,6 @@
   - Any default value the parameter has.
   - For configuration parameters that expire (e.g., PAT keys, tokens), propose adding a parameter that captures the expiration date, so the app or service can proactively warn users to renew.
 </configuration-guide>
-
-### Tools
-
-- Tools created in the context of a project are always written in TypeScript.
-- **Tool creation is MANDATORY via `/tool-conventions scaffold <tool-name>`.** Do NOT scaffold a tool's documentation file or its `~/.tool-agents/<tool-name>/` configuration folder by hand under any circumstances. The slash command dispatches the `tool-doc-config-architect` subagent (`~/.claude/agents/tool-doc-config-architect.md`), which owns the full specification — the documentation file format (the `<toolName>` XML block under `docs/tools/<tool-name>.md`), the configuration folder structure and modes (`~/.tool-agents/<tool-name>/` at `0700`, `.env` at `0600`), the four-tier env-var resolution chain (shell env → `~/.tool-agents/<name>/.env` → local `.env` → CLI flags, lowest to highest priority), the vendor-canonical LLM provider env-var names (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `AZURE_OPENAI_*`, `AZURE_AI_INFERENCE_*`, `OLLAMA_HOST`, `LITELLM_*`), and the required set of eight standard LLM providers every LLM-enabled tool must support out of the box. Read the subagent prompt to inspect the full specification. For existing tools, run `/tool-conventions audit <tool-name>` to verify conformance.
-- The project's CLAUDE.md must NOT contain full tool documentation. It must contain a "Tools" section with a concise entry per tool: the tool's name, a one-or-two-sentence description of what it is capable of, and the relative path to its dedicated documentation file (e.g. `docs/tools/<tool-name>.md`) so the full documentation can be retrieved any time it is needed. The slash command produces the recommended entry text after each scaffold.
-- Before writing any code script, examine the tools already implemented in the project (via the "Tools" section of the project's CLAUDE.md and the documentation under `docs/tools/`) to detect whether the planned code fits the scope of an existing tool. If so, implement it as an extension of that tool; otherwise build a generic, abstract version of the code as a new tool in the project's toolset. The goal is to progressively grow the tools needed to test, evaluate, generate data, collect information, etc., and reuse them consistently — all referenced in the project's CLAUDE.md.
-
-### General Rules
-
-- When asked to locate code, report the folder, the file name, the class, and the line number together with the code extract.
-- Don't perform any version-control operation unless explicitly requested.
-- Database table naming: table names must be singular (e.g. the table keeping customers' data is `Customer`). Tables expressing references from one entity to another may be plural when the first entity links to many of the second — so with `Customer` and `Transaction` tables, the link table is `CustomerTransactions`.
-- NEVER create fallback solutions for configuration settings. Whenever a configuration setting is not provided, raise the appropriate exception — never substitute the missing value with a default or fallback. If the user explicitly asks for an exception to this rule, write the exception in the project's memory file before implementing it.
-
-<dependency-vetting>
-- Before adding ANY new runtime dependency to a project (`package.json`, `pyproject.toml`, `go.mod`, etc.), you MUST verify the version you are about to pin is free of known security advisories. Apply this rule especially to:
-  - **Browser/embedded-engine packages:** `electron`, `puppeteer`, `playwright`, `chromium`, `webview2` — they ship with full browser engines and accumulate CVEs fast.
-  - **Test/build toolchains:** `vitest`, `vite`, `esbuild`, `webpack`, `rollup`, `parcel` — frequent dev-server-RCE advisories with transitive impact.
-  - **Network/proxy libraries:** `node-http-proxy`, `http-proxy-3`, `proxy-chain`, `axios`, `node-fetch`, `request`, `got`, `undici`.
-  - **Cryptography / auth libraries:** `jsonwebtoken`, `jose`, `bcrypt`, `node-forge`, `crypto-js`.
-
-- Vetting procedure (run BEFORE writing the dependency into the manifest):
-  1. Identify the latest stable major version available on the registry (e.g. `npm view <pkg> versions --json | tail -10` or `pnpm info <pkg> versions --json`).
-  2. Check the package's security advisory page (GitHub Advisory Database, npmjs.com vulnerability tab, or `npm audit --package <pkg>@<version> --json`) for the candidate version.
-  3. If the candidate version has unfixed advisories at HIGH severity or above, bump to the next non-vulnerable major (or, if no such version exists, surface the trade-off to the user via AskUserQuestion before proceeding).
-  4. Pin to a caret range against the verified clean version (e.g. `"electron": "^39.8.5"`, not `"electron": "^38"`).
-  5. Record the vetted-on date in a one-line comment in `Issues - Pending Items.md` under a "Dependency vetting log" section so future audits can date the decision.
-
-- For ESPECIALLY fast-moving packages (`electron`, `vite`, `vitest`, `esbuild`), ALWAYS pull the latest stable major even when a reference implementation uses an older one. The reference's version is informational, not authoritative — verify it is still on a supported branch before adopting it verbatim.
-
-- After installing, ALWAYS run the project's audit command (`pnpm audit`, `npm audit`, `pip-audit`, `cargo audit`, `go list -m -u -json all | nancy sleuth`, etc.) and confirm the advisory count is zero before marking the scaffolding step complete. Treat any HIGH-or-above advisory as a blocker; surface it before continuing.
-
-- When a transitive dependency carries an advisory that the direct dependency has not yet fixed (e.g. `vitest@1` pulling `vite@5` with a CVE), use the package manager's override mechanism (`pnpm.overrides`, `npm overrides`, `yarn resolutions`, `cargo [patch]`) to force the fixed transitive version, AND document the override in `Issues - Pending Items.md` with its expiry condition (i.e. "remove this override once direct-dep X reaches version Y").
-</dependency-vetting>
 
 </structure-and-conventions>
 
@@ -71,12 +60,17 @@
   - **MiniMax-M2.7** (229B params MoE, ~10B active, UD-IQ4_XS ~101 GB, 4 shards) — `models/MiniMax-M2.7/UD-IQ4_XS/MiniMax-M2.7-UD-IQ4_XS-00001-of-00004.gguf`
     - Performance: ~34 t/s prompt, ~5 t/s generation (cold) on Apple M-series with 128 GB unified memory
     - 200K context; load the **first shard only** — llama.cpp auto-loads the rest
-  - **Ornith-1.0-35B** (35B MoE, ~3B active, `qwen35moe` / Qwen3-Next delta-net hybrid, Q8_0 36.9 GB) — `models/Ornith-1.0-35B/ornith-1.0-35b-Q8_0.gguf`
-    - Agentic-coding model from DeepReinforce; reasoning (`<think>`), OpenAI-style tool calling (qwen3 XML), 256K context, MIT licensed
-    - Recommended sampling: **temp 0.6, top-p 0.95, top-k 20**
-    - Performance: ~99 t/s prompt, ~93 t/s generation at Q8_0 on Apple M5 Max (128 GB unified memory)
-    - Run via the dedicated wrapper `./run-ornith.sh` (bakes in the optimal flags). See `docs/reference/ornith-models.md`.
-    - Requires a llama.cpp build that implements the `qwen35moe` arch (present since ~b8855; this repo is on b9835)
+  - **Ornith-1.5-35B-A3B** (35B MoE, ~3B active, `qwen35moe` / built on Qwen3.6-35B-A3B, Q8_0 37.8 GB + 0.9 GB mmproj) — `models/Ornith-1.5-35B/Ornith-1.5-35B-Q8_0.gguf`
+    - Current-generation agentic-coding model from Ornith AI (2026-08-24); reasoning (`<think>`), OpenAI-style tool calling (qwen3 XML), 256K context, optional vision via `--vision`, MIT licensed
+    - Recommended sampling: **temp 0.6, top-p 0.95, top-k 20** (temp 1.0 to reproduce the published benchmarks)
+    - Run via the dedicated wrapper `./run-ornith.sh` (defaults to 1.5). See `docs/reference/ornith-models.md`.
+    - Same `qwen35moe` arch as Ornith 1.0 — runs on the existing b9835 build
+    - Performance (Ornith 1.0, same arch/quant): ~99 t/s prompt, ~93 t/s generation on Apple M5 Max (128 GB unified memory)
+    - **Removed from disk 2026-09-07 (superseded):** Ornith-1.0-35B and Qwen3.6-35B-A3B. Re-download with `./scripts/download-Ornith-1.0-35B.sh` / `./scripts/download-qwen-3.6-35B.sh`; `./run-ornith.sh <mode> --version 1.0` then selects Ornith 1.0.
+  - **Qwen3.8-27B** (27B dense VLM, `qwen35` arch, UD-Q8_K_XL 31.5 GB + 0.9 GB mmproj) — `models/qwen-3.8-27B/Qwen3.8-27B-UD-Q8_K_XL.gguf`
+    - Successor of the Qwen3.6 series (2026-08-14); thinking on by default (`<think>`), `reasoning_effort` / `preserve_thinking` via chat template, 256K context, Apache-2.0
+    - Recommended sampling: thinking **temp 1.0, top-p 0.95, top-k 20, min-p 0**; instruct temp 0.7, top-p 0.80, top-k 20, presence-penalty 1.5
+    - Runs on b9835 (same arch as Qwen3.5/3.6 dense). See `docs/reference/qwen38-27b.md`.
   - **Qwen3-Coder-Next** (80B MoE, ~3B active, Qwen3-Next delta-net hybrid, UD-Q6_K_XL ~73 GB, 3 shards) — `models/Qwen3-Coder-Next/UD-Q6_K_XL/Qwen3-Coder-Next-UD-Q6_K_XL-00001-of-00003.gguf`
     - Agentic-coding model from the Qwen team; **non-reasoning** (no `<think>`), OpenAI-style tool calling (`qwen3_coder`), 256K context, Apache-2.0
     - Recommended sampling: **temp 1.0, top-p 0.95, top-k 40, min-p 0.01, repeat-penalty off**
@@ -90,9 +84,15 @@
 ./llama.cpp/build/bin/llama-cli -m ./models/gemma-4-E2B/gemma-4-E2B-it-Q8_0.gguf -ngl 99 --temp 0.7
 ```
 
-**Interactive chat (Ornith):**
+**Interactive chat (Ornith 1.5):**
 ```bash
 ./run-ornith.sh chat
+```
+
+**Interactive chat (Qwen3.8-27B, thinking mode):**
+```bash
+./llama.cpp/build/bin/llama-cli -m ./models/qwen-3.8-27B/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+  -ngl 99 -fa on -c 32768 --jinja --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0
 ```
 
 **Interactive chat (Qwen3-Coder-Next):**
@@ -122,15 +122,17 @@ disable `<think>` reasoning (llama.cpp `--reasoning off --reasoning-budget 0
 with `chat_template_kwargs.enable_thinking=true` **and** `thinking_budget_tokens>0`. See
 `scripts/README.md` for the details.
 
-**Ornith-1.0-35B (agentic coding) — use the dedicated wrapper:**
+**Ornith-1.5-35B-A3B (agentic coding) — use the dedicated wrapper:**
 ```bash
 ./run-ornith.sh chat                      # interactive REPL (temp 0.6, top-p 0.95, top-k 20, --jinja)
 ./run-ornith.sh serve --ctx 65536         # OpenAI-compatible API on :8080 with tool calling
+./run-ornith.sh serve --vision            # also load the mmproj so images can be sent
 ./run-ornith.sh ask "Explain this stack trace ..." --tokens 2048
+./run-ornith.sh chat --version 1.0        # Ornith-1.0-35B (not on disk; re-download first)
 ```
 Equivalent raw command (what the wrapper runs):
 ```bash
-./llama.cpp/build/bin/llama-cli -m ./models/Ornith-1.0-35B/ornith-1.0-35b-Q8_0.gguf \
+./llama.cpp/build/bin/llama-cli -m ./models/Ornith-1.5-35B/Ornith-1.5-35B-Q8_0.gguf \
   -ngl 99 -fa on -c 32768 --jinja --temp 0.6 --top-p 0.95 --top-k 20
 ```
 
@@ -186,8 +188,10 @@ Download all models with the helper script:
 
 Or download individual models:
 ```bash
-./scripts/download-Ornith-1.0-35B.sh
+./scripts/download-Ornith-1.5-35B.sh
+./scripts/download-qwen-3.8-27B.sh
 ./scripts/download-Qwen3-Coder-Next.sh
+./scripts/download-Ornith-1.0-35B.sh      # previous generation (removed from disk 2026-09-07)
 ```
 
 Download examples:
@@ -200,8 +204,18 @@ HF_HUB_ENABLE_HF_TRANSFER=1 hf download unsloth/gemma-4-E4B-it-GGUF \
 HF_HUB_ENABLE_HF_TRANSFER=1 hf download unsloth/MiniMax-M2.7-GGUF \
   --include "UD-IQ4_XS/*" --local-dir models/MiniMax-M2.7
 
-# Ornith-1.0-35B Q8_0 (single file, ~37 GB) — agentic coding MoE
-HF_HUB_ENABLE_HF_TRANSFER=1 hf download deepreinforce-ai/Ornith-1.0-35B-GGUF \
+# Ornith-1.5-35B-A3B Q8_0 (single file, ~38 GB) + mmproj — agentic coding MoE
+HF_HUB_ENABLE_HF_TRANSFER=1 hf download ornith-ai/Ornith-1.5-35B-A3B-GGUF \
+  --include "Ornith-1.5-35B-Q8_0.gguf" --include "mmproj-Ornith-1.5-35B-BF16.gguf" \
+  --local-dir models/Ornith-1.5-35B
+
+# Qwen3.8-27B UD-Q8_K_XL (single file, ~32 GB) + mmproj — dense VLM, thinking by default
+HF_HUB_ENABLE_HF_TRANSFER=1 hf download unsloth/Qwen3.8-27B-GGUF \
+  --include "Qwen3.8-27B-UD-Q8_K_XL.gguf" --include "mmproj-BF16.gguf" \
+  --local-dir models/qwen-3.8-27B
+
+# Ornith-1.0-35B Q8_0 (previous generation, ~37 GB, removed from disk 2026-09-07) — HF org moved to ornith-ai
+HF_HUB_ENABLE_HF_TRANSFER=1 hf download ornith-ai/Ornith-1.0-35B-GGUF \
   --include "ornith-1.0-35b-Q8_0.gguf" --local-dir models/Ornith-1.0-35B
 
 # Qwen3-Coder-Next UD-Q6_K_XL (sharded, ~73 GB) — 80B/3B-active agentic coding MoE
@@ -217,7 +231,7 @@ Each wrapper starts a dedicated llama-server (if not already running, identity-c
 
 | Command | Model | Port | pi provider |
 |---------|-------|------|-------------|
-| `pi-ornith` / `pi-ornith-stop` | Ornith-1.0-35B (agentic coding MoE) | 8090 | `ornith` |
+| `pi-ornith` / `pi-ornith-stop` | Ornith-1.5-35B-A3B (agentic coding MoE; alias `ornith-1.5-35b`) | 8090 | `ornith` |
 | `pi-gemma31` / `pi-gemma31-stop` | Gemma 4 31B IT (dense) | 8091 | `gemma31` |
 | `pi-minimax` / `pi-minimax-stop` | MiniMax-M2.7 (229B MoE, ~101 GB) | 8092 | `minimax` |
 | `pi-qwen-coder` / `pi-qwen-coder-stop` | Qwen3-Coder-Next (80B MoE, ~68 GB) | 8093 | `qwencoder` |
@@ -230,10 +244,15 @@ pi-qwen-coder "Implement the parser and wire up the tests"
 pi-ornith-stop   # / pi-gemma31-stop / pi-minimax-stop / pi-qwen-coder-stop to free the server
 ```
 
-**MiniMax memory note:** its ~108 GB working set exceeds the default Metal GPU budget
-(~96 GB on a 128 GB Mac), so `-ngl 99` OOMs unless the GPU ceiling is raised. `pi-minimax`
-raises it automatically via `sudo sysctl -w iogpu.wired_limit_mb=122880` on first use (prompts
-for your password once per boot; the cap is a ceiling, not a reservation, and resets on reboot).
-To set it manually: `sudo sysctl -w iogpu.wired_limit_mb=122880`.
+**Served context windows:** Ornith, Gemma 31B and Qwen-Coder are set to the native **262144
+(256K)** — KV stays cheap there (Ornith/Qwen-Coder are SSM-hybrid; Gemma caps 50 of 60 layers
+at a 1024-token sliding window). **MiniMax** is set to **131072 (128K)** with a **q8_0 KV
+cache** — at 101 GiB of weights, f16 KV at 128K would need ~134 GiB (> 128 GiB RAM), so the KV
+is quantized (≈120 GiB working set; 64K would be the largest MiniMax can do with full f16 KV).
+Adjust via the `*_CTX` vars (inline wrappers) or the `--ctx` passed to `run-*.sh`.
 
-@~/.claude/pre-implementation-pipeline.md
+**MiniMax memory note:** its working set exceeds the default Metal GPU budget (~96 GB on a 128 GB
+Mac), so `-ngl 99` OOMs unless the GPU ceiling is raised. `pi-minimax` raises it automatically via
+`sudo sysctl -w iogpu.wired_limit_mb=125952` on first use (prompts for your password once per boot;
+the cap is a ceiling, not a reservation, and resets on reboot). To set it manually:
+`sudo sysctl -w iogpu.wired_limit_mb=125952`.

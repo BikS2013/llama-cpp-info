@@ -53,8 +53,10 @@ get_model_repo() {
         gemma-4-26B) echo "unsloth/gemma-4-26B-A4B-it-GGUF" ;;
         gemma-4-31B) echo "unsloth/gemma-4-31B-it-GGUF" ;;
         MiniMax-M2.7) echo "unsloth/MiniMax-M2.7-GGUF" ;;
-        Ornith-1.0-35B) echo "deepreinforce-ai/Ornith-1.0-35B-GGUF" ;;
+        Ornith-1.0-35B) echo "ornith-ai/Ornith-1.0-35B-GGUF" ;;
+        Ornith-1.5-35B) echo "ornith-ai/Ornith-1.5-35B-A3B-GGUF" ;;
         qwen-3.6-35B) echo "unsloth/Qwen3.6-35B-A3B-GGUF" ;;
+        qwen-3.8-27B) echo "unsloth/Qwen3.8-27B-GGUF" ;;
         Qwen3-Coder-Next) echo "unsloth/Qwen3-Coder-Next-GGUF" ;;
         *) echo "" ;;
     esac
@@ -69,7 +71,9 @@ get_model_include() {
         gemma-4-31B) echo "gemma-4-31B-it-Q8_0.gguf" ;;
         MiniMax-M2.7) echo "UD-IQ4_XS/*" ;;
         Ornith-1.0-35B) echo "ornith-1.0-35b-Q8_0.gguf" ;;
+        Ornith-1.5-35B) echo "Ornith-1.5-35B-Q8_0.gguf,mmproj-Ornith-1.5-35B-BF16.gguf" ;;
         qwen-3.6-35B) echo "Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf" ;;
+        qwen-3.8-27B) echo "Qwen3.8-27B-UD-Q8_K_XL.gguf,mmproj-BF16.gguf" ;;
         Qwen3-Coder-Next) echo "UD-Q6_K_XL/*" ;;
         *) echo "" ;;
     esac
@@ -84,7 +88,9 @@ get_model_size() {
         gemma-4-31B) echo "30 GB" ;;
         MiniMax-M2.7) echo "101 GB" ;;
         Ornith-1.0-35B) echo "34 GB" ;;
+        Ornith-1.5-35B) echo "36 GB" ;;
         qwen-3.6-35B) echo "36 GB" ;;
+        qwen-3.8-27B) echo "30 GB" ;;
         Qwen3-Coder-Next) echo "68 GB" ;;
         *) echo "" ;;
     esac
@@ -98,8 +104,10 @@ get_model_desc() {
         gemma-4-26B) echo "Gemma 4 26B (A4B, Q8_0, 25 GB)" ;;
         gemma-4-31B) echo "Gemma 4 31B (dense, Q8_0, 30 GB)" ;;
         MiniMax-M2.7) echo "MiniMax-M2.7 (229B MoE, ~101 GB, 4 shards)" ;;
-        Ornith-1.0-35B) echo "Ornith-1.0-35B (35B MoE, Q8_0, 34 GB)" ;;
+        Ornith-1.0-35B) echo "Ornith-1.0-35B (35B MoE, Q8_0, 34 GB) [superseded by 1.5]" ;;
+        Ornith-1.5-35B) echo "Ornith-1.5-35B-A3B (35B MoE, Q8_0, 35 GB + mmproj)" ;;
         qwen-3.6-35B) echo "Qwen3.6-35B (A3B, Q8_K_XL, 36 GB)" ;;
+        qwen-3.8-27B) echo "Qwen3.8-27B (dense, Q8_K_XL, 29 GB + mmproj)" ;;
         Qwen3-Coder-Next) echo "Qwen3-Coder-Next (80B MoE, ~68 GB, 3 shards)" ;;
         *) echo "" ;;
     esac
@@ -135,15 +143,17 @@ get_model_notes() {
     case "$model_name" in
         gemma-4-E2B) echo "Performance: ~67 t/s prompt, ~120 t/s generation on Apple M4 Max" ;;
         MiniMax-M2.7) echo "200K context. For Apple silicon with 128 GB: sudo sysctl -w iogpu.wired_limit_mb=122880" ;;
-        Ornith-1.0-35B) echo "Agentic coding model. Reasoning (<think>), tool calling (qwen3 XML). Use run-ornith.sh wrapper." ;;
+        Ornith-1.0-35B) echo "Agentic coding model (previous gen). Reasoning (<think>), tool calling (qwen3 XML). Use run-ornith.sh --version 1.0." ;;
+        Ornith-1.5-35B) echo "Agentic coding model. Reasoning (<think>), tool calling (qwen3 XML), vision via mmproj. Use run-ornith.sh wrapper (default)." ;;
         qwen-3.6-35B) echo "Qwen3-Next delta-net hybrid MoE" ;;
+        qwen-3.8-27B) echo "Dense VLM, thinking on by default. Sampling: temp 1.0, top-p 0.95, top-k 20, min-p 0 (thinking) / temp 0.7, top-p 0.8 (instruct)." ;;
         Qwen3-Coder-Next) echo "NON-reasoning (no <think>). Tool calling (qwen3_coder). Use run-qwen-coder.sh wrapper." ;;
         *) echo "" ;;
     esac
 }
 
 get_all_models() {
-    echo "gemma-4-E2B gemma-4-E4B gemma-4-26B gemma-4-31B MiniMax-M2.7 Ornith-1.0-35B qwen-3.6-35B Qwen3-Coder-Next"
+    echo "gemma-4-E2B gemma-4-E4B gemma-4-26B gemma-4-31B MiniMax-M2.7 Ornith-1.0-35B Ornith-1.5-35B qwen-3.6-35B qwen-3.8-27B Qwen3-Coder-Next"
 }
 
 # =============================================================================
@@ -395,9 +405,16 @@ download_model() {
     
     mkdir -p "$target_dir"
     
+    # "include" may be a comma-separated list of patterns (e.g. model + mmproj)
+    local include_args=()
+    local include_list
+    IFS=',' read -ra include_list <<< "$include"
+    local pat
+    for pat in "${include_list[@]}"; do include_args+=(--include "$pat"); done
+
     # Use HF_TRANSFER for faster downloads
     HF_HUB_ENABLE_HF_TRANSFER=1 hf download "$repo" \
-        --include "$include" \
+        "${include_args[@]}" \
         --local-dir "$target_dir"
     
     print_success "Downloaded ${model_name}"
@@ -405,10 +422,20 @@ download_model() {
     print_usage_example "$model_name"
     
     # Special notes for agentic models
-    if [[ "$model_name" == "Ornith-1.0-35B" ]]; then
-        echo "For optimal usage, see the dedicated wrapper:"
+    if [[ "$model_name" == "Ornith-1.5-35B" ]]; then
+        echo "For optimal usage, see the dedicated wrapper (defaults to Ornith 1.5):"
         echo "  ./run-ornith.sh chat                      # Interactive REPL"
         echo "  ./run-ornith.sh serve --ctx 65536         # API server"
+        echo ""
+    elif [[ "$model_name" == "Ornith-1.0-35B" ]]; then
+        echo "For optimal usage, see the dedicated wrapper:"
+        echo "  ./run-ornith.sh chat --version 1.0        # Interactive REPL"
+        echo "  ./run-ornith.sh serve --version 1.0 --ctx 65536"
+        echo ""
+    elif [[ "$model_name" == "qwen-3.8-27B" ]]; then
+        echo "Recommended raw command (thinking mode):"
+        echo "  ./llama.cpp/build/bin/llama-cli -m models/qwen-3.8-27B/Qwen3.8-27B-UD-Q8_K_XL.gguf \\"
+        echo "    -ngl 99 -fa on -c 32768 --jinja --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0"
         echo ""
     elif [[ "$model_name" == "Qwen3-Coder-Next" ]]; then
         echo "For optimal usage, see the dedicated wrapper:"
@@ -562,8 +589,10 @@ Available Models:
   gemma-4-26B          Gemma 4 26B (A4B, Q8_0, 25 GB)
   gemma-4-31B          Gemma 4 31B (dense, Q8_0, 30 GB)
   MiniMax-M2.7         MiniMax-M2.7 (229B MoE, ~101 GB, 4 shards)
-  Ornith-1.0-35B       Ornith-1.0-35B (35B MoE, Q8_0, 34 GB)
+  Ornith-1.0-35B       Ornith-1.0-35B (35B MoE, Q8_0, 34 GB) [superseded by 1.5]
+  Ornith-1.5-35B       Ornith-1.5-35B-A3B (35B MoE, Q8_0, 35 GB + mmproj)
   qwen-3.6-35B         Qwen3.6-35B (A3B, Q8_K_XL, 36 GB)
+  qwen-3.8-27B         Qwen3.8-27B (dense, Q8_K_XL, 29 GB + mmproj)
   Qwen3-Coder-Next     Qwen3-Coder-Next (80B MoE, ~68 GB, 3 shards)
 
 Requirements:
@@ -574,7 +603,7 @@ Requirements:
 
 Storage Requirements:
   Total for all default models: ~67.3 GB
-  Total for all models: ~306 GB
+  Total for all models: ~372 GB
 
 HELP
 }
