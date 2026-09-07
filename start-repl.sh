@@ -1,6 +1,6 @@
 #!/bin/bash
 # Start a GGUF model in interactive conversation (REPL) mode
-# Usage: ./start-repl.sh [--model PATH] [--temp FLOAT] [--ctx SIZE] [--list]
+# Usage: ./start-repl.sh [--model PATH] [--temp FLOAT] [--ctx SIZE] [--no-think] [--list]
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LLAMA_CLI="${PROJECT_DIR}/llama.cpp/build/bin/llama-cli"
@@ -8,6 +8,9 @@ MODELS_DIR="${PROJECT_DIR}/models"
 MODEL=""
 TEMP="0.7"
 CTX="4096"
+CTX_SET="no"   # becomes "yes" when --ctx is passed explicitly
+THINK="auto"   # auto = let the model's chat template decide; off = no thinking
+THINK_SET="no" # becomes "yes" when --think/--no-think is passed explicitly
 
 source "${PROJECT_DIR}/lib/model-select.sh"
 
@@ -15,7 +18,9 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --model) MODEL="$2"; shift 2 ;;
         --temp)  TEMP="$2"; shift 2 ;;
-        --ctx)   CTX="$2"; shift 2 ;;
+        --ctx)   CTX="$2"; CTX_SET="yes"; shift 2 ;;
+        --no-think) THINK="off";  THINK_SET="yes"; shift ;;
+        --think)    THINK="auto"; THINK_SET="yes"; shift ;;
         --list)
             echo "Downloaded models in ${MODELS_DIR}:"
             list_models "$MODELS_DIR"
@@ -27,7 +32,14 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --model PATH   Path to GGUF model (skip interactive menu)"
             echo "  --temp FLOAT   Sampling temperature (default: 0.7)"
-            echo "  --ctx SIZE     Context size in tokens (default: 4096)"
+            echo "  --ctx SIZE     Context size in tokens (default: 4096). Without the flag, the"
+            echo "                 interactive picker asks for it (4K … 256K presets or a custom value)."
+            echo "  --no-think     Run the model without thinking/reasoning (no <think> blocks)."
+            echo "                 Sets enable_thinking=false in the chat template (Gemma 4, Qwen 3.x,"
+            echo "                 Ornith) and force-closes the think block for models whose template"
+            echo "                 cannot switch it off (MiniMax-M2.7)."
+            echo "  --think        Let the chat template decide (default; thinking on for reasoning models)"
+            echo "                 Without either flag, the interactive picker also asks for the thinking mode."
             echo "  --list         List downloaded models and exit"
             echo "  -h, --help     Show this help"
             echo ""
@@ -43,8 +55,10 @@ if [ ! -f "$LLAMA_CLI" ]; then
     exit 1
 fi
 
+INTERACTIVE="no"
 if [ -z "$MODEL" ]; then
     MODEL=$(select_model "$MODELS_DIR") || exit 1
+    INTERACTIVE="yes"
 fi
 
 if [ ! -f "$MODEL" ]; then
@@ -52,10 +66,46 @@ if [ ! -f "$MODEL" ]; then
     exit 1
 fi
 
+# Context size and thinking mode: ask when the interactive picker was used and the
+# flag was not given; otherwise remind the user that the flag exists.
+if [ "$CTX_SET" = "no" ]; then
+    if [ "$INTERACTIVE" = "yes" ]; then
+        CTX=$(select_ctx "$CTX") || exit 1
+    else
+        echo "Context size: ${CTX} tokens (no flag given; use --ctx SIZE to change it, e.g. --ctx 32768)" >&2
+    fi
+fi
+if [ "$THINK_SET" = "no" ]; then
+    if [ "$INTERACTIVE" = "yes" ]; then
+        THINK=$(select_thinking) || exit 1
+    else
+        echo "Thinking mode: ${THINK} (no flag given; use --no-think to disable reasoning, --think to keep the template default)" >&2
+    fi
+fi
+
+# --no-think: `--reasoning off` sets enable_thinking=false in the jinja chat template
+# (Gemma 4, Qwen 3.x, Ornith). `--reasoning-budget 0` additionally forces the end-of-thinking
+# tag as soon as a think block opens, covering templates that ignore enable_thinking
+# (MiniMax-M2.7). The budget message is a single newline on purpose: templates that
+# pre-open the block as "<think>\n" prefill that newline into the budget sampler, which
+# would otherwise consume the forced "</think>" (llama.cpp b9835 behaviour); with the
+# newline in front, the prefilled "\n" absorbs it and "</think>" is still forced.
+THINK_ARGS=()
+if [ "$THINK" = "off" ]; then
+    THINK_ARGS=(--reasoning off --reasoning-budget 0 --reasoning-budget-message $'\n')
+fi
+
 echo "Using model: ${MODEL#$PROJECT_DIR/}"
+echo "Context: ${CTX} tokens  (change with --ctx SIZE)"
+if [ "$THINK" = "off" ]; then
+    echo "Thinking: off   (--no-think; drop the flag or pass --think to restore reasoning)"
+else
+    echo "Thinking: auto  (chat-template default; pass --no-think to run without reasoning)"
+fi
 
 exec "$LLAMA_CLI" \
     -m "$MODEL" \
     -ngl 99 \
     --temp "$TEMP" \
-    -c "$CTX"
+    -c "$CTX" \
+    ${THINK_ARGS[@]+"${THINK_ARGS[@]}"}

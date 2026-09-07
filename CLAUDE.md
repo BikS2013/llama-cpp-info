@@ -115,6 +115,13 @@
 ./llama.cpp/build/bin/llama-server -m <path-to-gguf> -ngl 99 --port 8080
 ```
 
+**Without thinking (generic pickers):** `./start-repl.sh --no-think` / `./start-api.sh --no-think` / `./ask.sh "..." --no-think`
+disable `<think>` reasoning (llama.cpp `--reasoning off --reasoning-budget 0
+--reasoning-budget-message $'\n'`). Works for Gemma 4, Qwen 3.x, Ornith (template
+`enable_thinking=false`) and MiniMax-M2.7 (forced `</think>`). API callers can re-enable per request
+with `chat_template_kwargs.enable_thinking=true` **and** `thinking_budget_tokens>0`. See
+`scripts/README.md` for the details.
+
 **Ornith-1.0-35B (agentic coding) — use the dedicated wrapper:**
 ```bash
 ./run-ornith.sh chat                      # interactive REPL (temp 0.6, top-p 0.95, top-k 20, --jinja)

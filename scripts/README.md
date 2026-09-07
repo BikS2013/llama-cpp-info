@@ -44,7 +44,26 @@ Download specific models or all default models:
 
 # API server
 ./start-api.sh
+
+# Interactive REPL / API server / single prompt with thinking disabled (no <think> blocks)
+./start-repl.sh --no-think
+./start-api.sh --no-think
+./ask.sh "Explain quicksort" --no-think --ctx 8192
 ```
+
+When `--ctx` is not given, the interactive model picker asks for the context window size (4K … 256K
+presets or a custom token count; default 4096), and when neither `--think` nor `--no-think` is given
+it also asks for the thinking mode. A `--model` run prints a one-line reminder for each missing flag.
+
+`--no-think` (in `start-repl.sh`, `start-api.sh` and `ask.sh`) passes llama.cpp's `--reasoning off`
+(sets `enable_thinking=false` in the chat template — Gemma 4, Qwen 3.x, Ornith) plus
+`--reasoning-budget 0 --reasoning-budget-message $'\n'` (force-closes a think block as soon
+as it opens, for templates that ignore `enable_thinking`, e.g. MiniMax-M2.7; the newline
+message is required on b9835 because those templates pre-open `<think>\n` — see item 7 in
+`Issues - Pending Items.md`). With the API server, a single request can opt back into
+thinking by sending both `"chat_template_kwargs": {"enable_thinking": true}` and
+`"thinking_budget_tokens": 4096` (any value > 0). Verified 2026-09-07 on Gemma 4 E2B,
+Qwen3.6-35B, Ornith-1.0-35B and MiniMax-M2.7.
 
 ## Available Scripts
 

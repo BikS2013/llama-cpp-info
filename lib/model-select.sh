@@ -85,3 +85,77 @@ select_model() {
 
     echo "${models[$((choice - 1))]}"
 }
+
+# Ask interactively whether the model should run with thinking/reasoning.
+# Usage: THINK=$(select_thinking)   -> prints "auto" or "off" to stdout
+# Prompts/menus go to stderr, like select_model.
+select_thinking() {
+    echo "" >&2
+    echo "Thinking / reasoning mode:" >&2
+    echo "   1) auto  - chat-template default (reasoning models emit <think> blocks first)" >&2
+    echo "   2) off   - no thinking, answers come back directly (faster, cheaper)" >&2
+    echo "   (skip this prompt next time with --think or --no-think)" >&2
+    echo "" >&2
+
+    local choice
+    if ! read -r -p "Select thinking mode [1-2] (default 1): " choice </dev/tty 2>/dev/tty; then
+        echo "ERROR: Could not read selection (is stdin a terminal?)" >&2
+        return 1
+    fi
+
+    case "$choice" in
+        ""|1) echo "auto" ;;
+        2)    echo "off" ;;
+        *)    echo "ERROR: Invalid selection: '$choice'" >&2; return 1 ;;
+    esac
+}
+
+# Ask interactively for the context window size.
+# Usage: CTX=$(select_ctx "<default>")   -> prints the chosen token count to stdout
+# Prompts/menus go to stderr, like select_model.
+select_ctx() {
+    local default="$1"
+    local sizes=(4096 8192 16384 32768 65536 131072 262144)
+    local labels=("4K" "8K" "16K" "32K" "64K" "128K" "256K")
+
+    echo "" >&2
+    echo "Context window size (tokens) — larger = longer prompts/history, more memory for the KV cache:" >&2
+    local i
+    for i in "${!sizes[@]}"; do
+        local mark=""
+        [ "${sizes[$i]}" = "$default" ] && mark="   (default)"
+        printf "  %2d) %6s  %-7s%s\n" "$((i + 1))" "${labels[$i]}" "${sizes[$i]}" "$mark" >&2
+    done
+    echo "   c) custom - type any token count" >&2
+    echo "   (skip this prompt next time with --ctx SIZE)" >&2
+    echo "" >&2
+
+    local choice
+    if ! read -r -p "Select context size [1-${#sizes[@]}, c] (default ${default}): " choice </dev/tty 2>/dev/tty; then
+        echo "ERROR: Could not read selection (is stdin a terminal?)" >&2
+        return 1
+    fi
+
+    case "$choice" in
+        "") echo "$default" ;;
+        c|C)
+            local custom
+            if ! read -r -p "Context size in tokens: " custom </dev/tty 2>/dev/tty; then
+                echo "ERROR: Could not read selection (is stdin a terminal?)" >&2
+                return 1
+            fi
+            if ! [[ "$custom" =~ ^[0-9]+$ ]] || [ "$custom" -lt 1 ]; then
+                echo "ERROR: Invalid context size: '$custom'" >&2
+                return 1
+            fi
+            echo "$custom"
+            ;;
+        *)
+            if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt ${#sizes[@]} ]; then
+                echo "ERROR: Invalid selection: '$choice'" >&2
+                return 1
+            fi
+            echo "${sizes[$((choice - 1))]}"
+            ;;
+    esac
+}

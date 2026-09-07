@@ -73,3 +73,31 @@ settings.
 
 **Status:** Implemented (UD-Q6_K_XL — 73 GB, 3 shards — downloaded; loads on b9835 via the
 Qwen3-Next hybrid arch already used by `qwen35moe`).
+
+## F012: Thinking-Free Runs via `--no-think` (start-repl.sh / start-api.sh / ask.sh)
+
+**Description:** Run any downloaded model without reasoning/thinking (`<think>` blocks) from the
+generic model-picker scripts, so answers are returned directly and faster.
+
+**Capabilities:**
+- `./start-repl.sh --no-think`, `./start-api.sh --no-think` and `./ask.sh "..." --no-think` (default
+  remains `auto` = the chat template decides; `--think` restores the default explicitly).
+  `ask.sh` also gained `--ctx SIZE` (previously it always used llama-cli's default).
+- Discoverability: without the flags, the interactive model picker follows up with a context-size
+  menu (`select_ctx` in `lib/model-select.sh`: 4K–256K presets or a custom value, default 4096)
+  and a "Thinking / reasoning mode" menu (`select_thinking`); a `--model` run prints a reminder
+  for each missing flag (`--ctx SIZE`, `--think`/`--no-think`), and the startup banner always
+  states the active context size and thinking mode with the flag that changes each.
+- Implemented with llama.cpp b9835 flags: `--reasoning off` (sets `enable_thinking=false` in the
+  jinja chat template — honoured by Gemma 4, Qwen 3.x, Ornith) plus `--reasoning-budget 0`
+  (forces the end-of-thinking tag as soon as a think block opens — covers MiniMax-M2.7, whose
+  template always opens `<think>` and ignores `enable_thinking`).
+- API server: a request can opt back into thinking by sending both
+  `chat_template_kwargs: {"enable_thinking": true}` and `thinking_budget_tokens: N` (N > 0);
+  sending only `enable_thinking` yields a force-closed think block and the reasoning leaks into
+  `content`.
+- Verified 2026-09-07 with one-shot prompts (thinking present by default, absent with the flag):
+  Gemma 4 E2B (4.3 s → 1.1 s), Qwen3.6-35B (13.2 s → 2.8 s), Ornith-1.0-35B (14.5 s → 3.3 s),
+  MiniMax-M2.7 (llama-cli, 40 GPU layers: 44 s → 23 s); same result through `llama-server`.
+
+**Status:** Implemented.
